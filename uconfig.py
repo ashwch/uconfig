@@ -41,6 +41,7 @@ defaults = {
     'config_extension': '.yaml',  # default file extensions (internally, it's still yaml)
     'config_folder_prefix': '.',
     'auto_save': True,
+    'read_environment': False
 }
 
 
@@ -76,8 +77,11 @@ class uConfig(object):
         self._config[key] = value
         self._auto_save()
 
-    def __getitem__(self, item):
-        return self._config.get(item)
+    def __getitem__(self, item, sentinel=object()):
+        value = self._config.get(item)
+        if value is sentinel and defaults['read_environment'] is True:
+            return os.getenv(item)
+        return value
 
     def __setitem__(self, key, value):
         self._config[key] = value
@@ -86,6 +90,12 @@ class uConfig(object):
     def __iter__(self):
         for key, value in self._config.items():
             yield key, value
+
+    def __dir__(self):
+        if defaults['read_environment'] is True:
+            return sorted(set(self._config).union(os.environ))
+        else:
+            return sorted(self._config)
 
     def _update(self, dictionary):
         assert isinstance(self._config, dict)
@@ -161,3 +171,5 @@ class uConfig(object):
                 config.update({name: value})
 
         return config
+
+__all__ = ['uConfig']
