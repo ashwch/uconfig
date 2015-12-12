@@ -31,6 +31,7 @@ explicitly write the config.
     conf._save()
 """
 
+from ast import literal_eval
 import os
 import yaml
 import inspect
@@ -68,7 +69,7 @@ class uConfig(object):
     def __getattribute__(self, item):
         if item.startswith('_'):
             return object.__getattribute__(self, item)
-        return self._config.get(item)
+        return type(self).__getitem__(self, item)
 
     def __setattr__(self, key, value):
         if key.startswith('_'):
@@ -78,9 +79,9 @@ class uConfig(object):
         self._auto_save()
 
     def __getitem__(self, item, sentinel=object()):
-        value = self._config.get(item)
+        value = self._config.get(item, sentinel)
         if value is sentinel and defaults['read_environment'] is True:
-            return os.getenv(item)
+            return self._convert(os.getenv(item))
         return value
 
     def __setitem__(self, key, value):
@@ -108,6 +109,12 @@ class uConfig(object):
 
     def _changed(self, key):
         return self._default_config.get(key) != self._config.get(key)
+
+    def _convert(self, value):
+        try:
+            return literal_eval(value)
+        except (SyntaxError, ValueError):
+            return value
 
     def _reset(self):
         self._config = self._default_config
